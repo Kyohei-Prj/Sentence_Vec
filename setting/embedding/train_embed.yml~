@@ -1,0 +1,3 @@
+path: 'data/livedoor/preprocess/*'
+init: True
+pretrained_model: 'data/word_vector/KT_model_pos'

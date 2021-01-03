@@ -1,0 +1,93 @@
+from sklearn.feature_extraction.text import TfidfVectorizer
+import re
+import glob
+import sys
+import pandas as pd
+
+
+def sort_filename(filename_list):
+
+    filename_dict = {}
+    for filename in filename_list:
+        index = int(
+            re.split('/',
+                     filename)[-1].replace('.txt',
+                                           '').replace('pos_filter_text_', ''))
+        filename_dict[filename] = index
+
+    filename_tuple = sorted(filename_dict.items(), key=lambda x: x[1])
+
+    filename_list = [filename[0] for filename in filename_tuple]
+
+    return filename_list
+
+
+def make_corpus(filename_list):
+
+    corpus = []
+    for filename in filename_list:
+
+        with open(filename) as fn:
+            text = fn.read()
+
+        corpus.append(text)
+
+    return corpus
+
+
+def calc_tfidf(corpus):
+
+    vec = TfidfVectorizer()
+    tfidf = vec.fit_transform(corpus).toarray()
+    features = vec.get_feature_names()
+
+    return features, tfidf
+
+
+def sort_result(features, tfidf):
+
+    result_list = []
+    for values in tfidf:
+        result_dict = dict(zip(features, values))
+        result_dict_sort = {
+            ky: val
+            for ky, val in sorted(
+                result_dict.items(), key=lambda item: item[1], reverse=True)
+        }
+        result_list.append(result_dict_sort)
+
+    return result_list
+
+
+def save_result(result_list, col_names, n):
+
+    i = 0
+
+    for result_dict, col in zip(result_list, col_names):
+        word_list = []
+        value_list = []
+        for index, key in enumerate(result_dict.keys()):
+            word_list.append(key)
+            value_list.append(round(result_dict[key], 2))
+            if index > n:
+                break
+        df = pd.DataFrame({'word': word_list, 'tfidf': value_list})
+        save_path = 'data/livedoor/tfidf/' + 'tfidf_' + str(i) + '.csv'
+        df.to_csv(save_path, index=False, encoding='utf_8_sig')
+        i = i + 1
+
+
+def main():
+
+    filename_list = [filename for filename in glob.glob(sys.argv[1])]
+    filename_list = sort_filename(filename_list)
+    corpus = make_corpus(filename_list)
+
+    features, tfidf = calc_tfidf(corpus)
+    result_list = sort_result(features, tfidf)
+
+    save_result(result_list, filename_list, 5)
+
+
+if __name__ == '__main__':
+    main()

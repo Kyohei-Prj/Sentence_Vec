@@ -1,0 +1,72 @@
+from janome.tokenizer import Tokenizer
+from janome.analyzer import Analyzer
+from janome.tokenfilter import POSKeepFilter
+
+import multiprocessing as mp
+import glob
+import sys
+import re
+
+
+def pos_filter(text):
+
+    tokenizer = Tokenizer()
+    token_filters = [POSKeepFilter(['名詞', '動詞', '形容詞'])]
+    analysis = Analyzer(tokenizer=tokenizer, token_filters=token_filters)
+
+    token = analysis.analyze(text)
+    word_list = [word.surface for word in token]
+
+    return concat_str(word_list)
+
+
+def concat_str(string_list):
+
+    string_concat = ''
+    for string in string_list:
+        string_concat = string_concat + string + ' '
+
+    return string_concat
+
+
+def load_text(path):
+
+    filename_list = [filename for filename in glob.glob(path)]
+
+    text_list = []
+    for filename in filename_list:
+
+        with open(filename) as fn:
+            text = fn.read()
+
+        text_list.append(text)
+
+    return text_list
+
+
+def save_text(corpus_list, path, save_path):
+
+    filename_list = [filename for filename in glob.glob(path)]
+
+    for corpus, filename in zip(corpus_list, filename_list):
+
+        rename = filename.replace('processed_text', 'pos_filter_text')
+        save_full_path = save_path + re.split('/', rename)[-1]
+
+        with open(save_full_path, mode='w') as fn:
+            fn.write(corpus)
+
+
+def main():
+
+    text_list = load_text(sys.argv[1])
+
+    cores = mp.cpu_count()
+    pool = mp.Pool(cores)
+    corpus_list = pool.map(pos_filter, text_list)
+
+    save_text(corpus_list, sys.argv[1], sys.argv[2])
+
+
+if __name__ == '__main__':
+    main()
