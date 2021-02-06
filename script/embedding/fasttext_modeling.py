@@ -30,8 +30,6 @@ def init_model(path):
 
 def update_model(model, path):
 
-    print(path)
-
     model.build_vocab(sentences=iter_doc(path), update=True)
     model.train(corpus_file=path,
                 epochs=model.epochs,
